@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Lottery {
+    // Entities: manager, players, winner
+    address public manager;
+    address payable[] public players;
+    address payable public winner;
+
+    constructor() {
+        // Runs constructor, deployer of the contract will get stored as variable manager
+        manager = msg.sender;
+    }
+
+    function participate() public payable {
+        // Ether sent has to be at least 1
+        require(msg.value == 1 ether, 'Please pay 1 ether');
+        players.push(payable(msg.sender));
+    }
+
+    function getBalance() public view returns (uint256) {
+        // Only manager can access balance check 
+        require(manager == msg.sender, 'You are not the manager');
+        return address(this).balance;
+    }
+
+    function random() internal view returns(uint256) {
+        // To truly get a random number, an oracle is needed
+        return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, players.length)));
+    }
+
+    function pickWinner() public {
+        require(manager == msg.sender, 'You are not the manager');
+        require(players.length >= 3, 'Not enough players');
+
+        uint256 r = random();
+        // Modulo will give remainder of a huge random number 
+        uint256 index = r % players.length; 
+        winner = players[index];
+        winner.transfer(getBalance());
+        players = new address payable[](0); // Array that sets players back to 0 
+    }
+}
